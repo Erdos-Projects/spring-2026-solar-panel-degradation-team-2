@@ -1,0 +1,9 @@
+numpy
+pandas
+seaborn
+matplotlib
+parquet
+pdvaq_access
+RdTools
+pvlib
+pvdeg
