@@ -25,4 +25,4 @@ Our predictive features include latitude, longitude, ZIP, meteorological data, a
 
 
 ## Modeling approach
-Our predictive features are all categorical, so we are using one hot encoding with dummy variables.
+Our predictive features are currently all categorical, so we are using one hot encoding with dummy variables. This is expected to change.
