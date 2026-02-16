@@ -1,0 +1,58 @@
+# first, list the systems we have no data for.
+    # (sadly, there are four on initialization!)
+    systems_to_add = []
+    for system_id in parquet_metrics_set.difference(systems_id_set):
+        systems_to_add.append(system_id)
+    # [np.int32(1251), np.int32(1327), np.int32(1341), np.int32(2045)]
+    if len(systems_to_add) > 0:
+        # now load site/system data
+        sites_dir = '../../data/raw/parquet-sites/'
+        sites_pq = pq.ParquetDataset(sites_dir)
+        sites_df = sites_pq.read().to_pandas()
+        systems_dir = '../../data/raw/parquet-systems/'
+        systems_pq = pq.ParquetDataset(systems_dir)
+        systems_df = systems_pq.read().to_pandas()
+        add_on_dict = {
+                'system_id': [],
+                'system_public_name': [],
+                'site_location': [],
+                'latitude': [],
+                'longitude': [],
+                'elevation_m': [],
+                'kg_climate': [],
+                'first_timestamp': [],
+                'last_timestamp': [],
+                'qa_issue': [],
+            }
+        # debug
+        for key in add_on_dict.keys():
+            print(key)
+        for add_on_id in systems_to_add:
+            sites_ind = sites_df.loc[
+                sites_df.loc[:, 'system_id'] == add_on_id
+            ].index[0]
+            systems_ind = systems_df.loc[
+                systems_df.loc[:, 'system_id'] == add_on_id
+            ].index[0]
+            increment_dict = {
+                'system_id': add_on_id,
+                'system_public_name': sites_df.loc[sites_ind, 'public_name'],
+                'site_location': sites_df.loc[sites_ind, 'location'],
+                'latitude': sites_df.loc[sites_ind, 'latitude'],
+                'longitude': sites_df.loc[sites_ind, 'longitude'],
+                'elevation_m': sites_df.loc[sites_ind, 'elevation'],
+                'kg_climate': sites_df.loc[sites_ind, 'climate_type'],
+                'first_timestamp': systems_df.loc[systems_ind, 'started_on'],
+                'last_timestamp': systems_df.loc[systems_ind, 'ended_on'],
+                'qa_issue': systems_df.loc[systems_ind, 'comments']
+            }
+            for key in add_on_dict.keys():
+                add_on_dict[key].append(increment_dict[key])
+        add_on_df = pd.DataFrame(add_on_dict)
+        systems_cleaned = pd.concat(systems_cleaned, add_on_df,
+                                    ignore_index=True)
+        # redo datetime shenanigans
+        systems_cleaned['first_timestamp']\
+            = systems_cleaned['first_timestamp'].astype('datetime64[s]')
+        systems_cleaned.loc[:, 'first_year']\
+            = systems_cleaned.loc[:, 'first_timestamp'].dt.year
