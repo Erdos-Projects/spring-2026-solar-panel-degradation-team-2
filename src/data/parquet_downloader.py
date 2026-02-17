@@ -10,8 +10,8 @@ import time
 from systems_initializer import downloader
 
 # choices -- choose here
-i_start = 1
-i_end = 9
+i_start = 15
+i_end = 19
 
 # prepare for future pandas 3.0 usage
 pd.options.mode.copy_on_write = True
