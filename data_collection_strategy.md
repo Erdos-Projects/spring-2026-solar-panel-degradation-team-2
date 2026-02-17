@@ -28,7 +28,7 @@ For each site, collect the irradiance data -- usually looking like `nnnn_irradia
 Then we look to see if there are 2 consecutive years of data, for RdTools requirements.  If not, we cannot use the data.  For example, System 2107 has data for the years 2017 and 2024, but nothing in-between, and that is not enough.
 
 #### Downloads of all relevant data
-We collect environment and irradiance data for each site, prefixed by the number, but with some adjustments (e.g., for site 2105, the data is 2105_environment_1_data.csv and 2105_environment_2_data.csv and 2015_irradiance_data.csv).  Crucially, our current project does not require saving lots of 
+We collect environment and irradiance data for each site, prefixed by the number, but with some adjustments (e.g., for site 2105, the data is 2105_environment_1_data.csv, 2105_environment_2_data.csv and 2015_irradiance_data.csv).  Crucially, our current project permits us to skip most of the files on electrical generation data (which is huge).
 We also collect the metadata for each site.  This *should* be redundant, but we cannot afford to be careless.  
 These are few enough to download “by hand.”
 Then inspect the data.  If there are 2 consecutive years of data [for RdTools requirements], we keep it.  Otherwise, we have to drop it.
@@ -40,10 +40,8 @@ https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=pvdaq%2Fparquet%2
 Sadly, the older installations use parquet data rather than .csv data.  Collection strategy:
 1. Download all the metrics pages. “metrics__system_1199__part000.parquet”.
 2. If the metrics page does NOT have irradiance in some form, drop it.  Note that the name changes from site to site.  For example, system 1201 has it listed as `"metric_id":2789,"sensor_name":"poa_irradiance","common_name":"Irradiance POA"`, whereas system 1308 has it listed as `"metric_id":105,"sensor_name":"IntSolIrrad","common_name":"Irradiance POA"`  If we see it, we should record the `metric_id` number.
-3. If we proceed from step 2, go ahead and use the `pvdaq_access` package (encapsulating API calls) to download a sample of the first three years' parquet files.  There is one parquet File for each day of data collection, so this takes up about 5 minutes per location.  [Yes, we need to make a Colab of it eventually.]
-4.  If in the first three years, we have 2 years of consecutive data, we can proceed to download the whole file to online storage.  
-
-*Note:* Of the 4 systems checked so far (1199, 1201, 1202, 1308), the first had no irradiance factor whatsoever, and the latter three had consistently-0 entries for it.  It is not quite clear if we will ever get many data points here.
+3. If we proceed from step 2, for this set we have daily entries.  Hence, we can use the `boto3` API and see if we (probably) have enough days by just counting the number of files that *could be* downloaded.  
+4.  Go ahead and download the whole file to online storage.
 
 ### Collection 3: PVDAQ Public Data Lake – CSV
 
@@ -57,6 +55,6 @@ Fortunately, the (mostly) newer installations do allow .csv uploads.  They still
 
 *Note*: System 10 has data (though it is logged daily); none of the next 5 or 6 do.
 
-## Conclusions:
- We admit that the number of sites with “good” data is limited.  We hope that it will be enough to complete the project.
+## Notes past initial cleaning step.
+Only the five prize sites and 61 of the 106 parquet-data sites have irradiance data.  We will have to determine if we have enough to proceed.
 
