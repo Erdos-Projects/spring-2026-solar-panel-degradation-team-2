@@ -2,7 +2,7 @@ numpy
 pandas
 seaborn
 matplotlib
-parquet
+pyarrow.parquet
 pdvaq_access
 RdTools
 pvlib
