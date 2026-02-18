@@ -23,7 +23,9 @@ bucket = s3.Bucket("oedi-data-lake")
 
 def downloader(path_to_dir_local: str, path_to_dir_online: str,
                warn_empty=False, is_specific_file_type=False,
-               specific_file_type=''):
+               specific_file_type='',
+               log_path='../../logs/logs.csv',
+               data_directory_description=''):
     '''Download a file or collection of files from the
     OEDI PVDAQ Data Lake.
     More granular control than the pvdaq_access package,
@@ -44,6 +46,10 @@ def downloader(path_to_dir_local: str, path_to_dir_online: str,
         Print if you want to restrict to a particular file_type
     specific_file_type: str
         The specific file type you want.
+    log_path: str
+        The path to the log file you want.
+    data_directory_description: str
+        The describing text you want in the data file.
     '''
     global bucket
     downloads_list = []
@@ -100,32 +106,47 @@ def downloader(path_to_dir_local: str, path_to_dir_online: str,
                     }
                     downloads_list.append(sources_download)
         if len(downloads_list) > 0:
-            # save downloads itinerary
-            downloads_cols = ['Filename', 'Source', 'Access Time']
-            temp_dict = {
-                "Filename": [],
-                "Source": [],
-                "Access Time": []
-            }
-            for increment in downloads_list:
-                for key in downloads_cols:
-                    temp_dict[key].append(increment[key])
-            additions = pd.DataFrame(temp_dict)
-            # convert seconds-counter time to pd dataframe time
-            additions['Access Time']\
-                = additions['Access Time'].astype(int).astype(
-                    'datetime64[s]'
-                )
-            downloads_path = Path('../../data_inventory.csv')
-            if downloads_path.is_file():
-                downloads_df = pd.concat(
-                    [pd.read_csv(downloads_path), additions]
-                )
-                downloads_df['Access Time']\
-                    = downloads_df['Access Time'].astype('datetime64[s]')
-            else:
-                downloads_df = additions
-            downloads_df.to_csv(downloads_path, index=False)
+            # save download logs
+            log_path = Path(log_path)
+            try:
+                with open(log_path, mode='a') as log_adder:
+                    log_adder.writelines(
+                        [f'{inst["Filename"]},'
+                         + f'{inst["Source"]},'
+                         + f'{inst["Access Time"]}\n'
+                         for inst in downloads_list]
+                    )
+            except FileNotFoundError:
+                log_path.touch()
+                with open(log_path, mode='w') as log_adder:
+                    log_adder.writelines(
+                        [f'{inst["Filename"]},'
+                         + f'{inst["Source"]},'
+                         + f'{inst["Access Time"]}\n'
+                         for inst in downloads_list]
+                    )
+            except BaseException as e:
+                raise e
+
+            # append new notes to data_inventory.csv
+            data_inventory_path = '../../data_inventory.csv'
+            try:
+                with open(data_inventory_path, 'a') as data_adder:
+                    data_adder.writelines(
+                        [f'{inst["Filename"]},'
+                         + data_directory_description + '\n'
+                         for inst in downloads_list]
+                    )
+            except FileNotFoundError:
+                data_inventory_path.touch()
+                with open(log_path, mode='w') as data_adder:
+                    data_adder.writelines(
+                        [f'Filename: {inst["Filename"]},'
+                         + data_directory_description + '\n'
+                         for inst in downloads_list]
+                    )
+            except BaseException as e:
+                raise e
         return True
 
 
@@ -160,6 +181,10 @@ if __name__ == '__main__':
         = pd.Series([False]*num_sources, dtype='boolean')
     systems_cleaned.loc[:, 'has_irrad_data']\
         = pd.Series([False]*num_sources, dtype='boolean')
+    systems_cleaned.loc[:, 'has_power_data']\
+        = pd.Series([False]*num_sources, dtype='boolean')
+    systems_cleaned.loc[:, 'has_temp_data']\
+        = pd.Series([False]*num_sources, dtype='boolean')
     systems_id_set = set(systems_cleaned['system_id'].unique())
     print("Proceeding to load data from prize data.")
     # by manual inspection, there are 5 sites in the prize data,
@@ -193,6 +218,16 @@ if __name__ == '__main__':
                     # Avoid Irrad vs. irrad as follows.
                     if 'rrad' in key:
                         systems_cleaned.loc[ind, 'has_irrad_data'] = True
+                        break
+                for key in system_metrics.keys():
+                    # Avoid Irrad vs. irrad as follows.
+                    if ('Temp' in key) or ('temp' in key):
+                        systems_cleaned.loc[ind, 'has_temp_data'] = True
+                        break
+                for key in system_metrics.keys():
+                    # Avoid Irrad vs. irrad as follows.
+                    if ('pow' in key) or ('Pow' in key):
+                        systems_cleaned.loc[ind, 'has_power_data'] = True
                         break
                 systems_cleaned.loc[ind, 'first_year'] = first_year
     # Note that the metadata files include both "started_on"

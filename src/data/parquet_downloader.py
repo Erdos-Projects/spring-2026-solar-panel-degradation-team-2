@@ -10,8 +10,8 @@ import time
 from systems_initializer import downloader
 
 # choices -- choose here
-i_start = 20
-i_end = 29
+i_start = 0
+i_end = 60
 
 # prepare for future pandas 3.0 usage
 pd.options.mode.copy_on_write = True
@@ -43,12 +43,14 @@ def download_index_set(j_start, j_end):
         downloader(
             f'../../data/raw/systems/parquet/{system_id}/',
             f'pvdaq/parquet/pvdata/system_id={system_id}/',
-            warn_empty=True
+            warn_empty=True,
+            log_path=f'../../logs/logs_system_id={system_id}.csv',
+            data_directory_description=f'Parquet Data for System {system_id}'
         )
         et = time.time()
         duration = (et-st)/60
         print(f'Finished system_id {system_id} in {duration:.4f} minutes.')
-        time.sleep(120)  # space out calls
+        # time.sleep(120)  # space out calls
 
 
 if __name__ == '__main__':
