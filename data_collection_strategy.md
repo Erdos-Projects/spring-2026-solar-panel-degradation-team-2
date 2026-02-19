@@ -14,7 +14,7 @@ All data is ultimately from https://data.openei.org/submissions/4568; that is to
 Deline, C., Perry, K., Deceglie, M., Muller, M., Sekulic, W., & Jordan, D. (2021). Photovoltaic Data Acquisition (PVDAQ) Public Datasets. [Data set]. Open Energy Data Initiative (OEDI). NREL. https://doi.org/10.25984/1846021
 Metadata at most of the solar installations so tracked are in the “Available Systems Information” link, aka systems_20250729.csv.
 
-We ultimately need data on irradiance for at least 2 consecutive years, or else the RdTools package which estimates the degradation rates assumes there isn’t enough data and drops it.  [Probably a safe assumption, given the noisiness of the data.]
+We ultimately need data on irradiance, power generation, and temperature (ambient or module) for at least 2 consecutive years, or else the RdTools package which estimates the degradation rates assumes there isn’t enough data and drops it.  [Probably a safe assumption, given the noisiness of the data.]
 
 ### Collection 1: 2023 Solar Data Prize
 
@@ -56,5 +56,5 @@ Fortunately, the (mostly) newer installations do allow .csv uploads.  They still
 *Note*: System 10 has data (though it is logged daily); none of the next 5 or 6 do.
 
 ## Notes past initial cleaning step.
-Only the five prize sites and 61 of the 106 parquet-data sites have irradiance data.  We will have to determine if we have enough to proceed.
+Only the five prize sites and 61 of the 106 parquet-data sites have irradiance data; of the latter, 15 do not have power data.  We will have to determine if we have enough to proceed.
 
