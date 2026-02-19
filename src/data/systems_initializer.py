@@ -181,10 +181,6 @@ if __name__ == '__main__':
         = pd.Series([False]*num_sources, dtype='boolean')
     systems_cleaned.loc[:, 'has_irrad_data']\
         = pd.Series([False]*num_sources, dtype='boolean')
-    systems_cleaned.loc[:, 'has_power_data']\
-        = pd.Series([False]*num_sources, dtype='boolean')
-    systems_cleaned.loc[:, 'has_temp_data']\
-        = pd.Series([False]*num_sources, dtype='boolean')
     systems_id_set = set(systems_cleaned['system_id'].unique())
     print("Proceeding to load data from prize data.")
     # by manual inspection, there are 5 sites in the prize data,
@@ -219,17 +215,6 @@ if __name__ == '__main__':
                     if 'rrad' in key:
                         systems_cleaned.loc[ind, 'has_irrad_data'] = True
                         break
-                for key in system_metrics.keys():
-                    # Avoid Irrad vs. irrad as follows.
-                    if ('Temp' in key) or ('temp' in key):
-                        systems_cleaned.loc[ind, 'has_temp_data'] = True
-                        break
-                for key in system_metrics.keys():
-                    # Avoid Irrad vs. irrad as follows.
-                    if ('pow' in key) or ('Pow' in key):
-                        systems_cleaned.loc[ind, 'has_power_data'] = True
-                        break
-                systems_cleaned.loc[ind, 'first_year'] = first_year
     # Note that the metadata files include both "started_on"
     # and "first_timestamp" properties;
     # we manually checked that first_timestamp is more accurate.

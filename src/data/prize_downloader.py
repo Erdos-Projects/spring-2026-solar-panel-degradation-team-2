@@ -26,14 +26,21 @@ for j in range(5):
     file_prefix_i = "pvdaq/2023-solar-data-prize/"\
         + f"{system_name}_OEDI/data/"\
         + f"{system_name}_irradiance"
+    file_prefix_p = "pvdaq/2023-solar-data-prize/"\
+        + f"{system_name}_OEDI/data/"\
+        + f"{system_name}_irradiance"
     downloader(
         local_file_dir,
         file_prefix_e,
-        warn_empty=True
+        warn_empty=True,
+        log_path=f'../../logs/logs_system_id={system_id}.csv',
+        data_directory_description=f'Parquet Data for System {system_id}'
     )
     downloader(
         local_file_dir,
         file_prefix_i,
-        warn_empty=True
+        warn_empty=True,
+        log_path=f'../../logs/logs_system_id={system_id}.csv',
+        data_directory_description=f'Parquet Data for System {system_id}'
     )
     # other data groups much more space-intensive, will adjust as necessary.
