@@ -340,24 +340,23 @@ if __name__ == '__main__':
         is_specific_file_type=True,
         specific_file_type='.pdf'
     )
-    # trouble is, this folder contains a lot of .jpgs
-    # (A satellite photo of each location.)
-    # Wonderful, but not what we are looking for.
-    # So let's drop it!
-    csv_metadata_dir = Path('../../data/raw/csv_metadata/')
-    jpgs = csv_metadata_dir.glob("*.jpg")
-    for jpg in jpgs:
-        jpg.unlink()
+    csv_metadata_dir = Path('../../data/raw/csv-metadata/')
     # now grab the json files, infer the system_id, and
     # check for metadata
     jsons = csv_metadata_dir.glob("*_system_metadata.json")
     for file_path in jsons:
         system_id = int(
-            f'{file_path}'.replace('_system_metadata.json', '')
+            file_path.parts[-1].replace('_system_metadata.json', '')
         )
         with open(file_path) as reader:
-            local_metadata = json.load(file_path)
-            metrics = local_metadata['Metrics']
+            local_metadata = json.load(reader)
+            has_metrics = True
+            try:
+                system_metrics = local_metadata['Metrics']
+            except KeyError:
+                has_metrics = False
+            except BaseException as e:
+                raise e
             # we again override the 'first_year' data
             first_timestamp = local_metadata['System']['started_on']
             first_year = datetime.datetime.strptime(
@@ -369,11 +368,14 @@ if __name__ == '__main__':
             ]
             for ind in relevant_rows.index:
                 systems_cleaned.loc[ind, 'is_lake_csv_data'] = True
-                for key in metrics.keys():
-                    # Avoid Irrad vs. irrad as follows.
-                    if 'rrad' in key:
-                        systems_cleaned.loc[ind, 'has_irrad_data'] = True
-                        break
+                if has_metrics:
+                    for key in system_metrics.keys():
+                        # Avoid Irrad vs. irrad as follows.
+                        if 'rrad' in key:
+                            systems_cleaned.loc[ind, 'has_irrad_data'] = True
+                            break
+                # otherwise, "standard" outputs do not contain irradiance,
+                # so do nothing.
                 systems_cleaned.loc[ind, 'first_year'] = first_year
     # finally, save the data!
     permanent_systems_cleaned_path = Path(

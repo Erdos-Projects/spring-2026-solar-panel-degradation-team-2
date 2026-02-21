@@ -12,14 +12,29 @@ import json
 pd.options.mode.copy_on_write = True
 
 
-def search_for_fragment(df: pd.DataFrame, fragment: str):
+def search_for_fragment_df(df: pd.DataFrame, fragment: str):
     fragment = fragment.lower()
     pre_subscript = '_'+fragment
     return df[
         (df.loc[:, 'sensor_name'].str.contains(fragment, case=False))
         | (df.loc[:, 'common_name'].str.contains(fragment, case=False))
-        | (df.loc[:, 'common_name'].str.contains(fRagment))
+        | (df.loc[:, 'sensor_name']).str.contains(pre_subscript, case=False)
+        | (df.loc[:, 'common_name'].str.contains(fragment, case=False))
     ]
+
+
+def search_for_fragment_dict(the_dict, key, fragment: str):
+    fragment = fragment.lower()
+    if fragment in key.lower():
+        return True
+    # go to the next level
+    this_metric = the_dict[key]
+    this_metric_sensor = this_metric['sensor_name'].lower()
+    this_metric_common = this_metric['common_name'].lower()
+    if fragment in this_metric_sensor or fragment in this_metric_common:
+        return True
+    else:
+        return False
 
 
 if __name__ == '__main__':
@@ -56,15 +71,13 @@ if __name__ == '__main__':
                 systems_cleaned.loc[:, 'system_id'] == system_id
             ]
             for ind in relevant_rows.index:
-                systems_cleaned.loc[ind, 'is_prize_data'] = True
                 for key in system_metrics.keys():
-                    # Power
-                    if ('pow' in key) or ('Pow' in key):
+                    if search_for_fragment_dict(system_metrics, key, 'pow'):
                         systems_cleaned.loc[ind, 'has_power_data'] = True
-                    if ('mbient' in key):
+                    if search_for_fragment_dict(system_metrics, key, 'mbient'):
                         systems_cleaned.loc[ind,
                                             'has_ambient_temp_data'] = True
-                    if ('temp' in key) or ('Temp' in key):
+                    if search_for_fragment_dict(system_metrics, key, 'temp'):
                         systems_cleaned.loc[ind,
                                             'has_some_temp_data'] = True
 
@@ -74,7 +87,7 @@ if __name__ == '__main__':
     metrics_df = metrics_pq.read().to_pandas()
     parquet_metrics_set = set(metrics_df['system_id'].unique())
     # We first look for power
-    metrics_with_pow = search_for_fragment(metrics_df, 'pow')
+    metrics_with_pow = search_for_fragment_df(metrics_df, 'pow')
     parquet_pow_set = set(metrics_with_pow['system_id'].unique())
     for system_id in parquet_pow_set.intersection(systems_id_set):
         sys_relevant_rows = systems_cleaned.loc[
@@ -82,7 +95,7 @@ if __name__ == '__main__':
         ]
         for ind in sys_relevant_rows.index:
             systems_cleaned.loc[ind, 'has_pow_data'] = True
-    metrics_with_ambient = search_for_fragment(metrics_df, 'ambient')
+    metrics_with_ambient = search_for_fragment_df(metrics_df, 'ambient')
     parquet_amb_set = set(metrics_with_ambient['system_id'].unique())
     for system_id in parquet_amb_set.intersection(systems_id_set):
         sys_relevant_rows = systems_cleaned.loc[
@@ -90,7 +103,7 @@ if __name__ == '__main__':
         ]
         for ind in sys_relevant_rows.index:
             systems_cleaned.loc[ind, 'has_ambient_temp_data'] = True
-    metrics_with_temp = search_for_fragment(metrics_df, 'temp')
+    metrics_with_temp = search_for_fragment_df(metrics_df, 'temp')
     parquet_temp_set = set(metrics_with_temp['system_id'].unique())
     for system_id in parquet_temp_set.intersection(systems_id_set):
         sys_relevant_rows = systems_cleaned.loc[
@@ -100,33 +113,48 @@ if __name__ == '__main__':
             systems_cleaned.loc[ind, 'has_some_temp_data'] = True
     print("Proceeding to load metadata from csv data.")
     # We begin by downloading metadata.
-    # So let's drop it!
-    csv_metadata_dir = Path('../../data/raw/csv_metadata/')
+    csv_metadata_dir = Path('../../data/raw/csv-metadata/')
 
     # now grab the json files, infer the system_id, and
     # check for metadata
     jsons = csv_metadata_dir.glob("*_system_metadata.json")
     for file_path in jsons:
         system_id = int(
-            f'{file_path}'.replace('_system_metadata.json', '')
+            file_path.parts[-1].replace('_system_metadata.json', '')
         )
         with open(file_path) as reader:
-            local_metadata = json.load(file_path)
-            metrics = local_metadata['Metrics']
+            local_metadata = json.load(reader)
+            has_metrics = True
+            try:
+                system_metrics = local_metadata['Metrics']
+            except KeyError:
+                has_metrics = False
+            except BaseException as e:
+                raise e
             relevant_rows = systems_cleaned.loc[
                 systems_cleaned.loc[:, 'system_id'] == system_id
             ]
             for ind in relevant_rows.index:
-                systems_cleaned.loc[ind, 'is_lake_csv_data'] = True
-                for key in metrics.keys():
-                    if ('pow' in key) or ('Pow' in key):
-                        systems_cleaned.loc[ind, 'has_power_data'] = True
-                    if ('mbient' in key):
-                        systems_cleaned.loc[ind,
-                                            'has_ambient_temp_data'] = True
-                    if ('temp' in key) or ('Temp' in key):
-                        systems_cleaned.loc[ind,
-                                            'has_some_temp_data'] = True
+                if has_metrics:
+                    for key in system_metrics.keys():
+                        if search_for_fragment_dict(
+                            system_metrics, key, 'pow'
+                        ):
+                            systems_cleaned.loc[ind, 'has_power_data'] = True
+                        if search_for_fragment_dict(
+                            system_metrics, key, 'mbient'
+                        ):
+                            systems_cleaned.loc[ind,
+                                                'has_ambient_temp_data'] = True
+                        if search_for_fragment_dict(
+                            system_metrics, key, 'temp'
+                        ):
+                            systems_cleaned.loc[ind,
+                                                'has_some_temp_data'] = True
+                else:
+                    # default statistics include power, nothing else
+                    systems_cleaned.loc[ind, 'has_power_data'] = True
+
     # save and quit!
     systems_cleaned.to_csv(permanent_systems_cleaned_path,
                            index=False)

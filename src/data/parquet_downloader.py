@@ -11,7 +11,7 @@ from systems_initializer import downloader
 
 # choices -- choose here
 i_start = 0
-i_end = 60
+i_end = 2
 
 # prepare for future pandas 3.0 usage
 pd.options.mode.copy_on_write = True
@@ -41,7 +41,7 @@ def download_index_set(j_start, j_end):
         print(f'system_id={system_id}')
         st = time.time()
         downloader(
-            f'../../data/raw/systems/parquet/{system_id}/',
+            f'../../../data_ds_project/systems/parquet/{system_id}/',
             f'pvdaq/parquet/pvdata/system_id={system_id}/',
             warn_empty=True,
             log_path=f'../../logs/logs_system_id={system_id}.csv',
